@@ -6,7 +6,7 @@ members = [
     "eth-riscv-syscalls",
 ]
 
-exclude = [ "eth-riscv-runtime" ]
+exclude = [ "erc20", "eth-riscv-runtime" ]
 
 [workspace.package]
 version = "0.1.0"

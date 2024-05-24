@@ -27,3 +27,9 @@ pub fn sstore(key: u64, value: u64) {
         asm!("ecall", in("a0") key, in("a1") value, in("t0") u32::from(Syscall::SStore));
     }
 }
+
+pub fn revert() {
+    unsafe {
+        asm!("ecall", in("t0") u32::from(Syscall::Revert));
+    }
+}

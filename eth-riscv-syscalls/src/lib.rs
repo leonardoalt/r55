@@ -54,4 +54,5 @@ syscalls!(
     (1, SLoad, "sload"),
     (2, SStore, "sstore"),
     (3, Call, "call"),
+    (4, Revert, "revert"),
 );
