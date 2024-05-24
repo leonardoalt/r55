@@ -1,0 +1,8 @@
+[package]
+name = "erc20"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+contract-derive = { path = "../contract-derive" }
+eth-riscv-runtime = { path = "../eth-riscv-runtime" }

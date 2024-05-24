@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 eth-riscv-syscalls = { path = "../eth-riscv-syscalls" }
+riscv-rt = "0.12.2"
