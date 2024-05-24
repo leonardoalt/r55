@@ -1,0 +1,10 @@
+[package]
+name = "eth-riscv-interpreter"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rvemu = { path = "../../rvemu" }
+goblin = "0.8.2"

@@ -2,7 +2,7 @@
 
 resolver = "2"
 
-members = [
+members = [ "eth-riscv-interpreter",
     "eth-riscv-syscalls",
 ]
 
