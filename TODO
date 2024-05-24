@@ -1,10 +1,10 @@
 Deployment ELF
 
-- Compile runtime.asm to ELF -> small ELF binary
+OK - Compile runtime.asm to ELF -> small ELF binary 
 - Write deploy routine in Rust, use include_bytes to add the other binary
 https://chatgpt.com/share/57ab10e0-8454-4d61-9cab-ca6a13836d3d
 - Compile deploy.asm
-- Find out how memory.x works
+OK - Find out how memory.x works
 https://github.com/rust-embedded/riscv/blob/master/riscv-rt/src/lib.rs#L41
 - Create our runtime that uses riscv-rt and adds alloc [maybe] and host functions
 - Remember to strip
