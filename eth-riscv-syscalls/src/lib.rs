@@ -47,6 +47,10 @@ macro_rules! syscalls {
 // Generate `Syscall` enum with supported syscalls and their numbers.
 syscalls!(
     (0, Return, "return"),
+    // Args for return:
+    // - t0: 0, opcode for return
+    // - a0: memory address of data
+    // - a1: length of data, in bytes
     (1, SLoad, "sload"),
     (2, SStore, "sstore"),
     (3, Call, "call"),
