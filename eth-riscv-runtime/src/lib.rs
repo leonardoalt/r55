@@ -1,10 +1,41 @@
 #![no_std]
+#![feature(
+    start,
+    alloc_error_handler,
+    maybe_uninit_write_slice,
+    round_char_boundary
+)]
 
 use core::arch::asm;
+use core::panic::PanicInfo;
+use core::slice;
 
+mod alloc;
 pub mod types;
 
-extern crate alloc;
+pub trait Contract {
+    fn call(&self);
+}
+
+pub unsafe fn slice_from_raw_parts(address: usize, length: usize) -> &'static [u8] {
+    slice::from_raw_parts(address as *const u8, length)
+}
+
+#[panic_handler]
+unsafe fn panic(panic: &PanicInfo<'_>) -> ! {
+    static mut IS_PANICKING: bool = false;
+
+    if !IS_PANICKING {
+        IS_PANICKING = true;
+
+        //print!("{panic}\n");
+    } else {
+        //print_str("Panic handler has panicked! Things are very dire indeed...\n");
+    }
+
+    asm!("unimp");
+    loop {}
+}
 
 use eth_riscv_syscalls::Syscall;
 
