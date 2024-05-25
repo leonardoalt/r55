@@ -7,4 +7,5 @@ void main() {
     if (value != 0xdeadbeef) {
         sys_revert();
     }
+    sys_return((void*)0, 0);
 }
