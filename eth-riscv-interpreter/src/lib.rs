@@ -7,7 +7,10 @@ pub fn setup_from_elf(elf_data: &[u8], call_data: &[u8]) -> Emulator {
 
     // Allocate 1MB for the call data
     let mut mem = vec![0; 1024 * 1024];
-    mem[..call_data.len()].copy_from_slice(call_data);
+    mem[..4].copy_from_slice(&(call_data.len() as u64).to_le_bytes());
+
+    assert!(call_data.len() < mem.len() - 4);
+    mem[4..(4 + call_data.len())].copy_from_slice(call_data);
 
     load_sections(&mut mem, &elf, elf_data);
 
