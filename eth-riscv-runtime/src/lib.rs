@@ -28,8 +28,12 @@ unsafe fn panic(_panic: &PanicInfo<'_>) -> ! {
     if !IS_PANICKING {
         IS_PANICKING = true;
 
+        revert();
+        // TODO with string
         //print!("{panic}\n");
     } else {
+        revert();
+        // TODO with string
         //print_str("Panic handler has panicked! Things are very dire indeed...\n");
     }
 
@@ -56,6 +60,12 @@ pub fn sload(key: u64) -> u64 {
 pub fn sstore(key: u64, value: u64) {
     unsafe {
         asm!("ecall", in("a0") key, in("a1") value, in("t0") u32::from(Syscall::SStore));
+    }
+}
+
+pub fn call(addr: u64, value: u64, in_mem: u64, in_size: u64, out_mem: u64, out_size: u64) {
+    unsafe {
+        asm!("ecall", in("a0") addr, in("a1") value, in("a2") in_mem, in("a3") in_size, in("a4") out_mem, in("a5") out_size, in("t0") u32::from(Syscall::Call));
     }
 }
 
