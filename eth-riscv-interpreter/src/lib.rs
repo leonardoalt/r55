@@ -20,25 +20,24 @@ pub fn setup_from_elf(elf_data: &[u8], call_data: &[u8]) -> Emulator {
 }
 
 fn load_sections(mem: &mut Vec<u8>, elf: &goblin::elf::Elf, elf_data: &[u8]) {
-    for program_header in &elf.program_headers {
-        if program_header.p_type == goblin::elf::program_header::PT_LOAD {
-            let start_data = program_header.p_offset as usize;
-            let end_data = start_data + program_header.p_filesz as usize;
-            let virtual_address = program_header.p_vaddr;
-            let virtual_end = virtual_address + program_header.p_memsz;
-
+    for ph in &elf.program_headers {
+        if ph.p_type == goblin::elf::program_header::PT_LOAD {
             // The interpreter RAM is DRAM_SIZE starting at DRAM_BASE
-            assert!(virtual_address >= DRAM_BASE);
-            assert!(virtual_end <= DRAM_BASE + DRAM_SIZE);
+            assert!(ph.p_vaddr >= DRAM_BASE);
+            assert!(ph.p_memsz <= DRAM_SIZE);
 
-            let start_vec = (virtual_address - DRAM_BASE) as usize;
-            let end_vec = (virtual_end - DRAM_BASE) as usize;
+            let start_vec = (ph.p_vaddr - DRAM_BASE) as usize;
+            let start_offset = ph.p_offset as usize;
 
+            let end_vec = start_vec + ph.p_memsz as usize;
             if mem.len() < end_vec {
                 mem.resize(end_vec, 0);
             }
 
-            mem[start_vec..end_vec].copy_from_slice(&elf_data[start_data..end_data]);
+            // The data available to copy may be smaller than the required size
+            let size_to_copy = ph.p_filesz as usize;
+            mem[start_vec..(start_vec + size_to_copy)]
+                .copy_from_slice(&elf_data[start_offset..(start_offset + size_to_copy)]);
         }
     }
 }
