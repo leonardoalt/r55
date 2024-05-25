@@ -12,8 +12,9 @@ fn main() {
     let mut db = CacheDB::new(EmptyDB::default());
 
     let og_bytecode: &[u8] = include_bytes!("../../c-runtime-examples/sstore-and-sload-example");
+    //let og_bytecode: &[u8] = include_bytes!("../../erc20/target/riscv64imac-unknown-none-elf/release/runtime");
     let mut new_bytecode = vec![0xff];
-    new_bytecode.extend_from_slice(og_bytecode);
+    new_bytecode.extend_from_slice(&og_bytecode);
 
     // Fill database:
     let bytecode = Bytes::from(new_bytecode);
