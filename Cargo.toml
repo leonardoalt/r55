@@ -3,7 +3,7 @@
 resolver = "2"
 
 members = [ "eth-riscv-interpreter",
-    "eth-riscv-syscalls",
+    "eth-riscv-syscalls", "r55",
 ]
 
 exclude = [ "contract-derive", "erc20", "eth-riscv-runtime" ]
