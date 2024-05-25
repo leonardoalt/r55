@@ -35,18 +35,21 @@ pub fn contract(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Generate match arms for public methods
     let match_arms: Vec<_> = public_methods.iter().enumerate().map(|(index, method)| {
         let method_name = &method.sig.ident;
-        //let method_selector = format!("{:08x}", index); // You might want to replace this with actual ABI selector calculation
-        let method_selector = index as u8;
-        let args: Vec<_> = method.sig.inputs.iter().skip(1).enumerate().map(|(i, _)| {
-            let arg_name = format_ident!("arg{}", i);
-            quote! { let #arg_name = *iter.next().unwrap() as u64; }
+        let method_selector = index as u32;
+        let arg_types: Vec<_> = method.sig.inputs.iter().skip(1).map(|arg| {
+            if let syn::FnArg::Typed(pat_type) = arg {
+                let ty = &*pat_type.ty;
+                quote! { #ty }
+            } else {
+                panic!("Expected typed arguments");
+            }
         }).collect();
 
         let arg_names: Vec<_> = (0..method.sig.inputs.len() - 1).map(|i| format_ident!("arg{}", i)).collect();
 
         quote! {
             #method_selector => {
-                #( #args )*
+                let (#( #arg_names ),*) = <(#( #arg_types ),*)>::abi_decode(calldata, true).unwrap();
                 self.#method_name(#( #arg_names ),*);
             }
         }
@@ -54,14 +57,22 @@ pub fn contract(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // Generate the call method implementation
     let call_method = quote! {
+        use alloy_sol_types::SolValue;
+        use eth_riscv_runtime::{revert, slice_from_raw_parts, Contract};
+
         impl Contract for #struct_name {
             fn call(&self) {
-                let address: usize = 0x1000; // Replace with actual address
-                let length: usize = 32; // Replace with actual length
-                let calldata = unsafe { slice_from_raw_parts(address, length) };
+                let address: usize = 0x8000_0000;
+                let length = unsafe { slice_from_raw_parts(address, 4) };
+                let length = u32::from_le_bytes([length[0], length[1], length[2], length[3]]) as usize;
+                let calldata = unsafe { slice_from_raw_parts(address + 4, length) };
+                self.call_with_data(calldata);
+            }
 
-                let mut iter = calldata.iter();
-                let selector = *iter.next().unwrap();
+            fn call_with_data(&self, calldata: &[u8]) {
+                let selector = u32::from_le_bytes([calldata[0], calldata[1], calldata[2], calldata[3]]);
+                let calldata = &calldata[4..];
+
                 match selector {
                     #( #match_arms )*
                     _ => revert(),

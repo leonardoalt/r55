@@ -15,6 +15,7 @@ pub mod types;
 
 pub trait Contract {
     fn call(&self);
+    fn call_with_data(&self, calldata: &[u8]);
 }
 
 pub unsafe fn slice_from_raw_parts(address: usize, length: usize) -> &'static [u8] {
