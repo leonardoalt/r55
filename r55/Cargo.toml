@@ -6,7 +6,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-revm = { path = "../../revm-rv/crates/revm" }
+revm = { git = "https://github.com/r0qs/revm" }
 
 [[bin]]
 name = "r55"
