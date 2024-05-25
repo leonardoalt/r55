@@ -1,7 +1,7 @@
 extern crate proc_macro;
 use proc_macro::TokenStream;
-use quote::{quote, format_ident};
-use syn::{parse_macro_input, ItemImpl, ImplItem};
+use quote::{format_ident, quote};
+use syn::{parse_macro_input, ImplItem, ItemImpl};
 
 #[proc_macro_attribute]
 pub fn show_streams(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -24,9 +24,11 @@ pub fn contract(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Iterate over the items in the impl block to find pub methods
     for item in input.items.iter() {
         if let ImplItem::Method(method) = item {
-            if method.vis == syn::Visibility::Public(syn::VisPublic {
-                pub_token: syn::token::Pub::default(),
-            }) {
+            if method.vis
+                == syn::Visibility::Public(syn::VisPublic {
+                    pub_token: syn::token::Pub::default(),
+                })
+            {
                 public_methods.push(method.clone());
             }
         }
@@ -80,11 +82,12 @@ pub fn contract(_attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         }
 
-        #[no_mangle]
-        pub extern "C" fn _start()
+        #[eth_riscv_runtime::entry]
+        fn main() -> !
         {
             let contract = #struct_name::default();
             contract.call();
+            eth_riscv_runtime::return_riscv(0, 0)
         }
     };
 

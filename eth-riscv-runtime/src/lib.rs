@@ -1,14 +1,11 @@
 #![no_std]
-#![feature(
-    start,
-    alloc_error_handler,
-    maybe_uninit_write_slice,
-    round_char_boundary
-)]
+#![no_main]
+#![feature(alloc_error_handler, maybe_uninit_write_slice, round_char_boundary)]
 
 use core::arch::asm;
 use core::panic::PanicInfo;
 use core::slice;
+pub use riscv_rt::entry;
 
 mod alloc;
 pub mod types;
@@ -37,17 +34,15 @@ unsafe fn panic(_panic: &PanicInfo<'_>) -> ! {
         // TODO with string
         //print_str("Panic handler has panicked! Things are very dire indeed...\n");
     }
-
-    asm!("unimp");
-    loop {}
 }
 
 use eth_riscv_syscalls::Syscall;
 
-pub fn return_riscv(addr: u64, offset: u64) {
+pub fn return_riscv(addr: u64, offset: u64) -> ! {
     unsafe {
         asm!("ecall", in("a0") addr, in("a1") offset, in("t0") u32::from(Syscall::Return));
     }
+    unreachable!()
 }
 
 pub fn sload(key: u64) -> u64 {
@@ -70,8 +65,19 @@ pub fn call(addr: u64, value: u64, in_mem: u64, in_size: u64, out_mem: u64, out_
     }
 }
 
-pub fn revert() {
+pub fn revert() -> ! {
     unsafe {
         asm!("ecall", in("t0") u32::from(Syscall::Revert));
     }
+    unreachable!()
+}
+
+#[no_mangle]
+fn DefaultHandler() {
+    revert();
+}
+
+#[no_mangle]
+fn ExceptionHandler(trap_frame: &riscv_rt::TrapFrame) -> ! {
+    revert();
 }
