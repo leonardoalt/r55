@@ -10,7 +10,7 @@ pub fn setup_from_elf(elf_data: &[u8]) -> Emulator {
     let mut emu = Emulator::new();
 
     emu.initialize_dram(mem);
-    emu.initialize_pc(elf.header.e_entry as u64);
+    emu.initialize_pc(elf.header.e_entry);
 
     emu
 }
