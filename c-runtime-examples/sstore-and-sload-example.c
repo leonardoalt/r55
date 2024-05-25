@@ -1,6 +1,6 @@
 #include "syscalls.h"
 
-void _start() {
+void main() {
     sys_sstore(42, 0xdeadbeef);
 
     uint64_t value = sys_sload(42);
