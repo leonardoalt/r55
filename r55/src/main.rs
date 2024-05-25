@@ -4,12 +4,12 @@ use revm::{
         address, keccak256, ruint::Uint, AccountInfo, Address, Bytecode, Bytes, ExecutionResult,
         Output, TransactTo, U256,
     },
-    Evm,
+    Evm, InMemoryDB,
 };
 
 fn main() {
     const CONTRACT_ADDR: Address = address!("0d4a11d5EEaaC28EC3F61d100daF4d40471f1852");
-    let mut db = CacheDB::new(EmptyDB::default());
+    let mut db = InMemoryDB::default();
 
     let og_bytecode: &[u8] = include_bytes!("../../c-runtime-examples/sstore-and-sload-example");
     //let og_bytecode: &[u8] = include_bytes!("../../erc20/target/riscv64imac-unknown-none-elf/release/runtime");
@@ -37,8 +37,8 @@ fn main() {
         })
         .build();
 
-    let ref_tx = evm.transact().unwrap();
-    let result = ref_tx.result;
+    let ref_tx = evm.transact_commit().unwrap();
+    /*let result = ref_tx.result;
 
     match result {
         ExecutionResult::Success {
@@ -46,7 +46,7 @@ fn main() {
             ..
         } => println!("Value: {:?}", value),
         result => panic!("Unexpected result: {:?}", result),
-    };
+    };*/
 
     let account_db = &evm.db().accounts[&CONTRACT_ADDR];
     println!("Account storage: {:?}", account_db.storage);
