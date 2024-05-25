@@ -6,5 +6,5 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-rvemu = { path = "../../rvemu" }
+rvemu = { git = "https://github.com/lvella/rvemu.git" }
 goblin = "0.8.2"
