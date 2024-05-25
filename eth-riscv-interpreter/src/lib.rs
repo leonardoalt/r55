@@ -1,11 +1,15 @@
 use rvemu::{bus::DRAM_BASE, dram::DRAM_SIZE, emulator::Emulator};
 
-pub fn setup_from_elf(elf_data: &[u8]) -> Emulator {
+pub fn setup_from_elf(elf_data: &[u8], call_data: &[u8]) -> Emulator {
     let elf = goblin::elf::Elf::parse(elf_data)
         .map_err(|_| "Failed to parse ELF")
         .unwrap();
 
-    let mem = load_mem(&elf, elf_data);
+    // Allocate 1MB for the call data
+    let mut mem = vec![0; 1024 * 1024];
+    mem[..call_data.len()].copy_from_slice(call_data);
+
+    load_sections(&mut mem, &elf, elf_data);
 
     let mut emu = Emulator::new();
 
@@ -15,8 +19,7 @@ pub fn setup_from_elf(elf_data: &[u8]) -> Emulator {
     emu
 }
 
-fn load_mem(elf: &goblin::elf::Elf, elf_data: &[u8]) -> Vec<u8> {
-    let mut mem = Vec::new();
+fn load_sections(mem: &mut Vec<u8>, elf: &goblin::elf::Elf, elf_data: &[u8]) {
     for program_header in &elf.program_headers {
         if program_header.p_type == goblin::elf::program_header::PT_LOAD {
             let start_data = program_header.p_offset as usize;
@@ -38,7 +41,6 @@ fn load_mem(elf: &goblin::elf::Elf, elf_data: &[u8]) -> Vec<u8> {
             mem[start_vec..end_vec].copy_from_slice(&elf_data[start_data..end_data]);
         }
     }
-    mem
 }
 
 #[cfg(test)]
@@ -51,7 +53,7 @@ mod tests {
     #[test]
     fn test_execute_elf() {
         let elf_data = fs::read("../asm-runtime-example/runtime").unwrap();
-        let mut emu = setup_from_elf(&elf_data);
+        let mut emu = setup_from_elf(&elf_data, &[]);
         let result: Result<(), Exception> = emu.start();
         assert_eq!(result, Err(Exception::EnvironmentCallFromMMode));
         let t0 = emu.cpu.xregs.read(5);
