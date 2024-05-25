@@ -28,7 +28,7 @@ fn main() {
     db.insert_account_info(CONTRACT_ADDR, account);
 
     let mut evm = Evm::builder()
-        .with_db(db.clone())
+        .with_db(db)
         .modify_tx_env(|tx| {
             tx.caller = address!("0000000000000000000000000000000000000001");
             tx.transact_to = TransactTo::Call(CONTRACT_ADDR);
@@ -48,9 +48,10 @@ fn main() {
         result => panic!("Unexpected result: {:?}", result),
     };
 
-    let account_db = &db.accounts[&CONTRACT_ADDR];
+    let account_db = &evm.db().accounts[&CONTRACT_ADDR];
     println!("Account storage: {:?}", account_db.storage);
     let slot_42 = account_db.storage[&U256::from(42)];
 
-    assert_eq!(slot_42.as_limbs()[0], 0xdeadbeaf);
+    println!("Slot 42: {:?}", slot_42);
+    assert_eq!(slot_42.as_limbs()[0], 0xdeadbeef);
 }
