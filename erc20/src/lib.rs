@@ -1,13 +1,14 @@
 #![no_std]
+#![no_main]
 
 use core::default::Default;
 
-use eth_riscv_runtime::{Contract, slice_from_raw_parts, types::Mapping, revert};
 use contract_derive::contract;
+use eth_riscv_runtime::{revert, slice_from_raw_parts, types::Mapping, Contract};
 
 #[derive(Default)]
 pub struct ERC20 {
-    balance: Mapping<u64, u64>
+    balance: Mapping<u64, u64>,
 }
 
 #[contract]

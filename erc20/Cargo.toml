@@ -6,3 +6,14 @@ edition = "2021"
 [dependencies]
 contract-derive = { path = "../contract-derive" }
 eth-riscv-runtime = { path = "../eth-riscv-runtime" }
+
+alloy-core = { version = "0.7.4", default-features = false }
+alloy-sol-types = { version = "0.7.4", default-features = false }
+
+[[bin]]
+name = "runtime"
+path = "src/lib.rs"
+
+[[bin]]
+name = "deploy"
+path = "src/deploy.rs"
