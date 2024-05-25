@@ -68,6 +68,13 @@ pub fn contract(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
         }
+
+        #[no_mangle]
+        pub extern "C" fn _start()
+        {
+            let contract = #struct_name::default();
+            contract.call();
+        }
     };
 
     let output = quote! {
