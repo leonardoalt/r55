@@ -43,13 +43,26 @@ fn load_mem(elf: &goblin::elf::Elf, elf_data: &[u8]) -> Vec<u8> {
 
 #[cfg(test)]
 mod tests {
+    use rvemu::exception::Exception;
+
     use super::*;
     use std::fs;
 
     #[test]
     fn test_execute_elf() {
         let elf_data = fs::read("../asm-runtime-example/runtime").unwrap();
-        let result = setup_from_elf(&elf_data).start();
-        println!("Result: {result:#?}");
+        let mut emu = setup_from_elf(&elf_data);
+        let result: Result<(), Exception> = emu.start();
+        assert_eq!(result, Err(Exception::EnvironmentCallFromMMode));
+        let t0 = emu.cpu.xregs.read(5);
+        let a0 = emu.cpu.xregs.read(10);
+        let a1 = emu.cpu.xregs.read(11);
+        // t0: 0, opcode for return, a0: memory address of data, a1: length of data, in bytes
+        assert!(t0 == 0); // return opcode
+        assert_eq!(a1, 8); // data returned should be a little-endian u64
+        let data_bytes = emu.cpu.bus.get_dram_slice(a0..(a0 + a1)).unwrap();
+
+        let data = u64::from_le_bytes(data_bytes.try_into().unwrap());
+        assert_eq!(data, 5);
     }
 }
