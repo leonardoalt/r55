@@ -1,49 +1,77 @@
+use std::fs::File;
+use std::io::Read;
+use std::process::Command;
+
+use alloy_sol_types::SolValue;
 use revm::{
-    db::{CacheDB, EmptyDB},
     primitives::{
         address, keccak256, ruint::Uint, AccountInfo, Address, Bytecode, Bytes, ExecutionResult,
         Output, TransactTo, U256,
     },
     Evm, InMemoryDB,
 };
-use alloy_sol_types::SolValue;
 
-fn main() {
-    const CONTRACT_ADDR: Address = address!("0d4a11d5EEaaC28EC3F61d100daF4d40471f1852");
-    let mut db = InMemoryDB::default();
+fn compile_runtime(path: &str) -> Result<Vec<u8>, ()> {
+    let status = Command::new("cargo")
+        .arg("+nightly-2024-02-01")
+        .arg("build")
+        .arg("-r")
+        .arg("--lib")
+        .arg("-Z")
+        .arg("build-std=core,alloc")
+        .arg("--target")
+        .arg("riscv64imac-unknown-none-elf")
+        .arg("--bin")
+        .arg("runtime")
+        .current_dir(path)
+        .status()
+        .expect("Failed to execute cargo command");
 
-    //let og_bytecode: &[u8] = include_bytes!("../../c-runtime-examples/sstore-and-sload-example");
-    let og_bytecode: &[u8] = include_bytes!("../../erc20/target/riscv64imac-unknown-none-elf/release/runtime");
-    let mut new_bytecode = vec![0xff];
-    new_bytecode.extend_from_slice(&og_bytecode);
+    if !status.success() {
+        eprintln!("Cargo command failed with status: {}", status);
+        std::process::exit(1);
+    } else {
+        println!("Cargo command completed successfully");
+    }
 
-    // Fill database:
-    let bytecode = Bytes::from(new_bytecode);
+    let path = format!(
+        "{}/target/riscv64imac-unknown-none-elf/release/runtime",
+        path
+    );
+    let mut file = match File::open(path) {
+        Ok(file) => file,
+        Err(e) => {
+            eprintln!("Failed to open file: {}", e);
+            return Err(());
+        }
+    };
+
+    // Read the file contents into a vector.
+    let mut bytecode = Vec::new();
+    if let Err(e) = file.read_to_end(&mut bytecode) {
+        eprintln!("Failed to read file: {}", e);
+        return Err(());
+    }
+
+    Ok(bytecode)
+}
+
+fn add_contract_to_db(db: &mut InMemoryDB, addr: Address, bytecode: Bytes) {
     let account = AccountInfo::new(
-        Uint::from(10),
+        Uint::from(0),
         0,
-        keccak256(CONTRACT_ADDR),
+        keccak256(&bytecode),
         Bytecode::new_raw(bytecode),
     );
+    db.insert_account_info(addr, account);
+}
 
-    db.insert_account_info(CONTRACT_ADDR, account);
-
-    let selector: u32 = 0;
-    let to: Address = address!("0000000000000000000000000000000000000001");
-    let value: u64 = 666;
-    //let mut calldata = (to, value).abi_encode();
-    let mut calldata = to.abi_encode();
-
-    let selector_bytes = selector.to_be_bytes().to_vec();
-    let mut complete_calldata = selector_bytes;
-    complete_calldata.append(&mut calldata);
-
-    println!("Calldata: {:?}", complete_calldata);
+fn run_tx(db: &mut InMemoryDB, addr: &Address, calldata: Vec<u8>) {
     let mut evm = Evm::builder()
         .with_db(db)
         .modify_tx_env(|tx| {
             tx.caller = address!("0000000000000000000000000000000000000001");
-            tx.transact_to = TransactTo::Call(CONTRACT_ADDR);
+            tx.transact_to = TransactTo::Call(*addr);
             tx.data = calldata.into();
             tx.value = U256::from(0);
         })
@@ -58,11 +86,43 @@ fn main() {
         } => println!("Value: {:?}", value),
         result => panic!("Unexpected result: {:?}", result),
     };
+}
 
+fn main() {
+    let rv_bytecode = compile_runtime("erc20").unwrap();
+
+    const CONTRACT_ADDR: Address = address!("0d4a11d5EEaaC28EC3F61d100daF4d40471f1852");
+    let mut db = InMemoryDB::default();
+
+    let mut bytecode = vec![0xff];
+    bytecode.extend_from_slice(&rv_bytecode);
+
+    let bytecode = Bytes::from(bytecode);
+
+    add_contract_to_db(&mut db, CONTRACT_ADDR, bytecode);
+
+    let selector_balance: u32 = 0;
+    let selector_mint: u32 = 2;
+    let to: Address = address!("0000000000000000000000000000000000000001");
+    let value_mint: u64 = 666;
+    let mut calldata_balance = to.abi_encode();
+    let mut calldata_mint = (to, value_mint).abi_encode();
+
+    let selector_bytes_balance = selector_balance.to_le_bytes().to_vec();
+    let mut complete_calldata_balance = selector_bytes_balance;
+    complete_calldata_balance.append(&mut calldata_balance);
+
+    let selector_bytes_mint = selector_mint.to_le_bytes().to_vec();
+    let mut complete_calldata_mint = selector_bytes_mint;
+    complete_calldata_mint.append(&mut calldata_mint);
+
+    run_tx(&mut db, &CONTRACT_ADDR, complete_calldata_mint.clone());
+    run_tx(&mut db, &CONTRACT_ADDR, complete_calldata_balance.clone());
+
+    /*
     let account_db = &evm.db().accounts[&CONTRACT_ADDR];
     println!("Account storage: {:?}", account_db.storage);
     let slot_42 = account_db.storage[&U256::from(42)];
-
-    println!("Slot 42: {:?}", slot_42);
     assert_eq!(slot_42.as_limbs()[0], 0xdeadbeef);
+    */
 }

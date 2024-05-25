@@ -72,12 +72,14 @@ pub fn revert() -> ! {
     unreachable!()
 }
 
+#[allow(non_snake_case)]
 #[no_mangle]
 fn DefaultHandler() {
     revert();
 }
 
+#[allow(non_snake_case)]
 #[no_mangle]
-fn ExceptionHandler(trap_frame: &riscv_rt::TrapFrame) -> ! {
+fn ExceptionHandler(_trap_frame: &riscv_rt::TrapFrame) -> ! {
     revert();
 }

@@ -2,6 +2,7 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{parse_macro_input, ImplItem, ItemImpl};
+use syn::{FnArg, ReturnType};
 
 #[proc_macro_attribute]
 pub fn show_streams(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -34,12 +35,11 @@ pub fn contract(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
 
-    // Generate match arms for public methods
     let match_arms: Vec<_> = public_methods.iter().enumerate().map(|(index, method)| {
         let method_name = &method.sig.ident;
         let method_selector = index as u32;
         let arg_types: Vec<_> = method.sig.inputs.iter().skip(1).map(|arg| {
-            if let syn::FnArg::Typed(pat_type) = arg {
+            if let FnArg::Typed(pat_type) = arg {
                 let ty = &*pat_type.ty;
                 quote! { #ty }
             } else {
@@ -49,10 +49,30 @@ pub fn contract(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
         let arg_names: Vec<_> = (0..method.sig.inputs.len() - 1).map(|i| format_ident!("arg{}", i)).collect();
 
+        // Check if the method has a return type
+        let return_handling = match &method.sig.output {
+            ReturnType::Default => {
+                // No return value
+                quote! {
+                    self.#method_name(#( #arg_names ),*);
+                }
+            }
+            ReturnType::Type(_, return_type) => {
+                // Has return value
+                quote! {
+                    let result: #return_type = self.#method_name(#( #arg_names ),*);
+                    let result_bytes = result.abi_encode();
+                    let result_size = result_bytes.len() as u64;
+                    let result_ptr = result_bytes.as_ptr() as u64;
+                    return_riscv(result_ptr, result_size);
+                }
+            }
+        };
+
         quote! {
             #method_selector => {
                 let (#( #arg_names ),*) = <(#( #arg_types ),*)>::abi_decode(calldata, true).unwrap();
-                self.#method_name(#( #arg_names ),*);
+                #return_handling
             }
         }
     }).collect();
@@ -77,8 +97,7 @@ pub fn contract(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
                 match selector {
                     #( #match_arms )*
-                    //_ => revert(),
-                    _ => eth_riscv_runtime::return_riscv(0, 0)
+                    _ => revert(),
                 }
 
                 return_riscv(0, 0);

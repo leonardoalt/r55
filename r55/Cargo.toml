@@ -6,9 +6,11 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-revm = { git = "https://github.com/r0qs/revm" }
+#revm = { git = "https://github.com/r0qs/revm" }
+revm = { path = "../../revm-rv/crates/revm" }
 alloy-core = "0.7.4"
 alloy-sol-types = "0.7.4"
+hex = "0.4"
 
 [[bin]]
 name = "r55"
