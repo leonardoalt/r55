@@ -17,3 +17,7 @@ path = "src/lib.rs"
 [[bin]]
 name = "deploy"
 path = "src/deploy.rs"
+
+[profile.release]
+lto = true
+opt-level = "z"
