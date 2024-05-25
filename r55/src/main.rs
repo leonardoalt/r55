@@ -37,8 +37,7 @@ fn main() {
         })
         .build();
 
-    let ref_tx = evm.transact_commit().unwrap();
-    /*let result = ref_tx.result;
+    let result = evm.transact_commit().unwrap();
 
     match result {
         ExecutionResult::Success {
@@ -46,7 +45,7 @@ fn main() {
             ..
         } => println!("Value: {:?}", value),
         result => panic!("Unexpected result: {:?}", result),
-    };*/
+    };
 
     let account_db = &evm.db().accounts[&CONTRACT_ADDR];
     println!("Account storage: {:?}", account_db.storage);
