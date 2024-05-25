@@ -65,9 +65,9 @@ pub fn contract(_attr: TokenStream, item: TokenStream) -> TokenStream {
         impl Contract for #struct_name {
             fn call(&self) {
                 let address: usize = 0x8000_0000;
-                let length = unsafe { slice_from_raw_parts(address, 4) };
-                let length = u32::from_le_bytes([length[0], length[1], length[2], length[3]]) as usize;
-                let calldata = unsafe { slice_from_raw_parts(address + 4, length) };
+                let length = unsafe { slice_from_raw_parts(address, 8) };
+                let length = u64::from_le_bytes([length[0], length[1], length[2], length[3], length[4], length[5], length[6], length[7]]) as usize;
+                let calldata = unsafe { slice_from_raw_parts(address + 8, length) };
                 self.call_with_data(calldata);
             }
 
@@ -77,7 +77,8 @@ pub fn contract(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
                 match selector {
                     #( #match_arms )*
-                    _ => revert(),
+                    //_ => revert(),
+                    _ => eth_riscv_runtime::return_riscv(0, 0)
                 }
 
                 return_riscv(0, 0);

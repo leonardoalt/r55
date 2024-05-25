@@ -6,13 +6,14 @@ use revm::{
     },
     Evm, InMemoryDB,
 };
+use alloy_sol_types::SolValue;
 
 fn main() {
     const CONTRACT_ADDR: Address = address!("0d4a11d5EEaaC28EC3F61d100daF4d40471f1852");
     let mut db = InMemoryDB::default();
 
-    let og_bytecode: &[u8] = include_bytes!("../../c-runtime-examples/sstore-and-sload-example");
-    //let og_bytecode: &[u8] = include_bytes!("../../erc20/target/riscv64imac-unknown-none-elf/release/runtime");
+    //let og_bytecode: &[u8] = include_bytes!("../../c-runtime-examples/sstore-and-sload-example");
+    let og_bytecode: &[u8] = include_bytes!("../../erc20/target/riscv64imac-unknown-none-elf/release/runtime");
     let mut new_bytecode = vec![0xff];
     new_bytecode.extend_from_slice(&og_bytecode);
 
@@ -27,12 +28,23 @@ fn main() {
 
     db.insert_account_info(CONTRACT_ADDR, account);
 
+    let selector: u32 = 0;
+    let to: Address = address!("0000000000000000000000000000000000000001");
+    let value: u64 = 666;
+    //let mut calldata = (to, value).abi_encode();
+    let mut calldata = to.abi_encode();
+
+    let selector_bytes = selector.to_be_bytes().to_vec();
+    let mut complete_calldata = selector_bytes;
+    complete_calldata.append(&mut calldata);
+
+    println!("Calldata: {:?}", complete_calldata);
     let mut evm = Evm::builder()
         .with_db(db)
         .modify_tx_env(|tx| {
             tx.caller = address!("0000000000000000000000000000000000000001");
             tx.transact_to = TransactTo::Call(CONTRACT_ADDR);
-            tx.data = Bytes::new();
+            tx.data = calldata.into();
             tx.value = U256::from(0);
         })
         .build();
