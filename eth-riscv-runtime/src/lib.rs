@@ -22,7 +22,7 @@ pub unsafe fn slice_from_raw_parts(address: usize, length: usize) -> &'static [u
 }
 
 #[panic_handler]
-unsafe fn panic(panic: &PanicInfo<'_>) -> ! {
+unsafe fn panic(_panic: &PanicInfo<'_>) -> ! {
     static mut IS_PANICKING: bool = false;
 
     if !IS_PANICKING {

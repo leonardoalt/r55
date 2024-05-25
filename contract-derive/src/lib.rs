@@ -1,7 +1,7 @@
 extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::{quote, format_ident};
-use syn::{parse_macro_input, ItemImpl, ImplItem, AttributeArgs, NestedMeta, Meta};
+use syn::{parse_macro_input, ItemImpl, ImplItem};
 
 #[proc_macro_attribute]
 pub fn show_streams(attr: TokenStream, item: TokenStream) -> TokenStream {
