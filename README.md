@@ -127,3 +127,36 @@ tokens to our test account in the first transaction, and we can see in the
 second transaction that indeed the balance is 42 (0x2a).
 
 # Architecture
+
+The compiler uses `rustc`, `llvm`,
+[eth-riscv-syscalls](https://github.com/leonardoalt/r55/tree/main/eth-riscv-syscalls),
+[eth-riscv-runtime](https://github.com/leonardoalt/r55/tree/main/eth-riscv-runtime)
+and [riscv-rt](https://github.com/rust-embedded/riscv/tree/master/riscv-rt) to
+compile and link ELF binaries with low-level syscalls to be executed by
+[rvemu-r55](https://github.com/lvella/rvemu):
+
+```mermaid
+graph TD;
+    RustContract[Rust contract] --> CompiledContract[compiled contract]
+    rustc --> CompiledContract
+    llvm --> CompiledContract
+    EthRiscVSyscalls[eth-riscv-syscalls] --> CompiledContract
+    EthRiscVRuntime1[eth-riscv-runtime] --> CompiledContract
+    CompiledContract --> LinkedRuntimeBytecode[linked runtime bytecode]
+    EthRiscVRuntime2[eth-riscv-runtime] --> LinkedRuntimeBytecode
+    riscv_rt[riscv-rt] --> LinkedRuntimeBytecode
+    LinkedRuntimeBytecode --> LinkedInitBytecode[linked init bytecode]
+    EthRiscVRuntime3[eth-riscv-runtime] --> LinkedInitBytecode
+```
+
+The execution environment depends on [revm](https://github.com/bluealloy/revm),
+and relies on the [rvemu-r55](https://github.com/lvella/rvemu) RISCV
+interpreter and
+[eth-riscv-runtime](https://github.com/leonardoalt/r55/tree/main/eth-riscv-runtime).
+
+```mermaid
+graph TD;
+    revm --> revm-r55
+    rvemu-r55 --> revm-r55
+    eth-riscv-runtime --> revm-r55
+```
