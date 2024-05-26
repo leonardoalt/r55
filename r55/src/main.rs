@@ -83,7 +83,7 @@ fn compile_deploy(path: &str) -> Result<Vec<u8>, ()> {
     }
 
     let path = format!(
-        "{}/target/riscv64imac-unknown-none-elf/release/runtime",
+        "{}/target/riscv64imac-unknown-none-elf/release/deploy",
         path
     );
     let mut file = match File::open(path) {
@@ -201,9 +201,7 @@ fn test_runtime_from_binary() {
     */
 }
 
-fn test_runtime(addr: &Address) {
-    let mut db = InMemoryDB::default();
-
+fn test_runtime(addr: &Address, db: &mut InMemoryDB) {
     let selector_balance: u32 = 0;
     let selector_mint: u32 = 2;
     let to: Address = address!("0000000000000000000000000000000000000001");
@@ -219,8 +217,8 @@ fn test_runtime(addr: &Address) {
     let mut complete_calldata_mint = selector_bytes_mint;
     complete_calldata_mint.append(&mut calldata_mint);
 
-    run_tx(&mut db, addr, complete_calldata_mint.clone());
-    run_tx(&mut db, addr, complete_calldata_balance.clone());
+    run_tx(db, addr, complete_calldata_mint.clone());
+    run_tx(db, addr, complete_calldata_balance.clone());
 }
 
 fn test_deploy() {
@@ -234,10 +232,10 @@ fn test_deploy() {
 
     let addr = deploy_contract(&mut db, bytecode);
 
-    test_runtime(&addr);
+    test_runtime(&addr, &mut db);
 }
 
 fn main() {
-    test_runtime_from_binary();
-    //test_deploy();
+    //test_runtime_from_binary();
+    test_deploy();
 }
