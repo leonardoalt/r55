@@ -157,7 +157,7 @@ fn run_tx(db: &mut InMemoryDB, addr: &Address, calldata: Vec<u8>) {
         ExecutionResult::Success {
             output: Output::Call(value),
             ..
-        } => println!("Value: {:?}", value),
+        } => println!("Tx result: {:?}", value),
         result => panic!("Unexpected result: {:?}", result),
     };
 }
@@ -178,7 +178,7 @@ fn test_runtime_from_binary() {
     let selector_balance: u32 = 0;
     let selector_mint: u32 = 2;
     let to: Address = address!("0000000000000000000000000000000000000001");
-    let value_mint: u64 = 666;
+    let value_mint: u64 = 42;
     let mut calldata_balance = to.abi_encode();
     let mut calldata_mint = (to, value_mint).abi_encode();
 
@@ -205,7 +205,7 @@ fn test_runtime(addr: &Address, db: &mut InMemoryDB) {
     let selector_balance: u32 = 0;
     let selector_mint: u32 = 2;
     let to: Address = address!("0000000000000000000000000000000000000001");
-    let value_mint: u64 = 666;
+    let value_mint: u64 = 42;
     let mut calldata_balance = to.abi_encode();
     let mut calldata_mint = (to, value_mint).abi_encode();
 
@@ -236,6 +236,6 @@ fn test_deploy() {
 }
 
 fn main() {
-    //test_runtime_from_binary();
+    test_runtime_from_binary();
     test_deploy();
 }

@@ -92,3 +92,38 @@ Nothing has to be changed in how transactions are handled or created.
 - [rvemu-R55](https://github.com/lvella/rvemu)
 - [R55 Ethereum Runtime](https://github.com/leonardoalt/r55/tree/main/eth-riscv-runtime)
 - [R55 Compiler](https://github.com/leonardoalt/r55/tree/main/r55)
+
+# Test
+
+The [R55](https://github.com/leonardoalt/r55/tree/main/r55) crate has a binary
+that puts everything together in an end-to-end PoC, compiling the
+[erc20](https://github.com/leonardoalt/r55/tree/main/erc20) contract, deploying
+it to an internal instance of [revm-r55](https://github.com/r0qs/revm), and
+running two transactions on it, first a `mint` then a `balance_of` check.
+
+You'll need to install Rust's RISCV toolchain:
+
+```console
+$ rustup install nightly-2024-02-01-x86_64-unknown-linux-gnu  
+```
+
+Now run:
+
+```console
+$ cargo run
+...
+Compiling deploy: erc20
+Cargo command completed successfully
+Deployed at addr: 0x522b3294e6d06aa25ad0f1b8891242e335d3b459
+Tx result: 0x
+Tx result: 0x000000000000000000000000000000000000000000000000000000000000002a
+```
+
+First R55 compiles the runtime RISCV-ELF binary that will be deployed. This is
+needed to also compile the initcode RISCV-ELF binary that runs the constructor
+and creates the contract.
+The `mint` function has no return values, seen in `Tx result: 0x`. We minted 42
+tokens to our test account in the first transaction, and we can see in the
+second transaction that indeed the balance is 42 (0x2a).
+
+# Architecture
