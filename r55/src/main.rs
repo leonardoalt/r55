@@ -12,6 +12,7 @@ use revm::{
 };
 
 fn compile_runtime(path: &str) -> Result<Vec<u8>, ()> {
+    println!("Compiling runtime: {}", path);
     let status = Command::new("cargo")
         .arg("+nightly-2024-02-01")
         .arg("build")
@@ -57,6 +58,8 @@ fn compile_runtime(path: &str) -> Result<Vec<u8>, ()> {
 }
 
 fn compile_deploy(path: &str) -> Result<Vec<u8>, ()> {
+    compile_runtime(path)?;
+    println!("Compiling deploy: {}", path);
     let status = Command::new("cargo")
         .arg("+nightly-2024-02-01")
         .arg("build")
@@ -111,7 +114,7 @@ fn add_contract_to_db(db: &mut InMemoryDB, addr: Address, bytecode: Bytes) {
     db.insert_account_info(addr, account);
 }
 
-fn deploy_contract(db: &mut InMemoryDB, bytecode: Bytes) {
+fn deploy_contract(db: &mut InMemoryDB, bytecode: Bytes) -> Address {
     let mut evm = Evm::builder()
         .with_db(db)
         .modify_tx_env(|tx| {
@@ -127,16 +130,14 @@ fn deploy_contract(db: &mut InMemoryDB, bytecode: Bytes) {
 
     match result {
         ExecutionResult::Success {
-            output: Output::Call(value),
-            ..
-        } => println!("Value: {:?}", value),
-        ExecutionResult::Success {
             output: Output::Create(_value, Some(addr)),
             ..
-        } => println!("Deployed at addr: {:?}", addr),
-
+        } => {
+            println!("Deployed at addr: {:?}", addr);
+            addr
+        }
         result => panic!("Unexpected result: {:?}", result),
-    };
+    }
 }
 
 fn run_tx(db: &mut InMemoryDB, addr: &Address, calldata: Vec<u8>) {
@@ -161,7 +162,7 @@ fn run_tx(db: &mut InMemoryDB, addr: &Address, calldata: Vec<u8>) {
     };
 }
 
-fn test_runtime() {
+fn test_runtime_from_binary() {
     let rv_bytecode = compile_runtime("erc20").unwrap();
 
     const CONTRACT_ADDR: Address = address!("0d4a11d5EEaaC28EC3F61d100daF4d40471f1852");
@@ -200,14 +201,43 @@ fn test_runtime() {
     */
 }
 
-fn test_deploy() {
-    let bytecode = compile_deploy("erc20").unwrap();
+fn test_runtime(addr: &Address) {
     let mut db = InMemoryDB::default();
 
-    deploy_contract(&mut db, bytecode.into());
+    let selector_balance: u32 = 0;
+    let selector_mint: u32 = 2;
+    let to: Address = address!("0000000000000000000000000000000000000001");
+    let value_mint: u64 = 666;
+    let mut calldata_balance = to.abi_encode();
+    let mut calldata_mint = (to, value_mint).abi_encode();
+
+    let selector_bytes_balance = selector_balance.to_le_bytes().to_vec();
+    let mut complete_calldata_balance = selector_bytes_balance;
+    complete_calldata_balance.append(&mut calldata_balance);
+
+    let selector_bytes_mint = selector_mint.to_le_bytes().to_vec();
+    let mut complete_calldata_mint = selector_bytes_mint;
+    complete_calldata_mint.append(&mut calldata_mint);
+
+    run_tx(&mut db, addr, complete_calldata_mint.clone());
+    run_tx(&mut db, addr, complete_calldata_balance.clone());
+}
+
+fn test_deploy() {
+    let rv_bytecode = compile_deploy("erc20").unwrap();
+    let mut db = InMemoryDB::default();
+
+    let mut bytecode = vec![0xff];
+    bytecode.extend_from_slice(&rv_bytecode);
+
+    let bytecode = Bytes::from(bytecode);
+
+    let addr = deploy_contract(&mut db, bytecode);
+
+    test_runtime(&addr);
 }
 
 fn main() {
-    test_runtime();
-    test_deploy();
+    test_runtime_from_binary();
+    //test_deploy();
 }
