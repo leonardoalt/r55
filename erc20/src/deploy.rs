@@ -3,8 +3,9 @@
 
 use eth_riscv_runtime::return_riscv;
 
-#[no_mangle]
-pub extern "C" fn _start() {
+#[eth_riscv_runtime::entry]
+fn main() -> !
+{
     //decode constructor arguments
     //constructor(ars);
     let runtime: &[u8] = include_bytes!("../target/riscv64imac-unknown-none-elf/release/runtime");

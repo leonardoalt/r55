@@ -56,6 +56,51 @@ fn compile_runtime(path: &str) -> Result<Vec<u8>, ()> {
     Ok(bytecode)
 }
 
+fn compile_deploy(path: &str) -> Result<Vec<u8>, ()> {
+    let status = Command::new("cargo")
+        .arg("+nightly-2024-02-01")
+        .arg("build")
+        .arg("-r")
+        .arg("--lib")
+        .arg("-Z")
+        .arg("build-std=core,alloc")
+        .arg("--target")
+        .arg("riscv64imac-unknown-none-elf")
+        .arg("--bin")
+        .arg("deploy")
+        .current_dir(path)
+        .status()
+        .expect("Failed to execute cargo command");
+
+    if !status.success() {
+        eprintln!("Cargo command failed with status: {}", status);
+        std::process::exit(1);
+    } else {
+        println!("Cargo command completed successfully");
+    }
+
+    let path = format!(
+        "{}/target/riscv64imac-unknown-none-elf/release/runtime",
+        path
+    );
+    let mut file = match File::open(path) {
+        Ok(file) => file,
+        Err(e) => {
+            eprintln!("Failed to open file: {}", e);
+            return Err(());
+        }
+    };
+
+    // Read the file contents into a vector.
+    let mut bytecode = Vec::new();
+    if let Err(e) = file.read_to_end(&mut bytecode) {
+        eprintln!("Failed to read file: {}", e);
+        return Err(());
+    }
+
+    Ok(bytecode)
+}
+
 fn add_contract_to_db(db: &mut InMemoryDB, addr: Address, bytecode: Bytes) {
     let account = AccountInfo::new(
         Uint::from(0),
@@ -64,6 +109,34 @@ fn add_contract_to_db(db: &mut InMemoryDB, addr: Address, bytecode: Bytes) {
         Bytecode::new_raw(bytecode),
     );
     db.insert_account_info(addr, account);
+}
+
+fn deploy_contract(db: &mut InMemoryDB, bytecode: Bytes) {
+    let mut evm = Evm::builder()
+        .with_db(db)
+        .modify_tx_env(|tx| {
+            tx.caller = address!("0000000000000000000000000000000000000001");
+            tx.transact_to = TransactTo::Create;
+            tx.data = bytecode;
+            tx.value = U256::from(0);
+        })
+        .build();
+    evm.cfg_mut().limit_contract_code_size = Some(usize::MAX);
+
+    let result = evm.transact_commit().unwrap();
+
+    match result {
+        ExecutionResult::Success {
+            output: Output::Call(value),
+            ..
+        } => println!("Value: {:?}", value),
+        ExecutionResult::Success {
+            output: Output::Create(_value, Some(addr)),
+            ..
+        } => println!("Deployed at addr: {:?}", addr),
+
+        result => panic!("Unexpected result: {:?}", result),
+    };
 }
 
 fn run_tx(db: &mut InMemoryDB, addr: &Address, calldata: Vec<u8>) {
@@ -88,7 +161,7 @@ fn run_tx(db: &mut InMemoryDB, addr: &Address, calldata: Vec<u8>) {
     };
 }
 
-fn main() {
+fn test_runtime() {
     let rv_bytecode = compile_runtime("erc20").unwrap();
 
     const CONTRACT_ADDR: Address = address!("0d4a11d5EEaaC28EC3F61d100daF4d40471f1852");
@@ -125,4 +198,16 @@ fn main() {
     let slot_42 = account_db.storage[&U256::from(42)];
     assert_eq!(slot_42.as_limbs()[0], 0xdeadbeef);
     */
+}
+
+fn test_deploy() {
+    let bytecode = compile_deploy("erc20").unwrap();
+    let mut db = InMemoryDB::default();
+
+    deploy_contract(&mut db, bytecode.into());
+}
+
+fn main() {
+    test_runtime();
+    test_deploy();
 }
