@@ -64,10 +64,9 @@ impl ERC20 {
         self.balance.write(to, to_balance + value);
     }
 
-    pub fn mint(&self, to: Address, value: u64) -> u64 {
+    pub fn mint(&self, to: Address, value: u64) {
         let to_balance = self.balance.read(to);
         self.balance.write(to, to_balance + value);
-        self.balance.read(to)
     }
 }
 ```
