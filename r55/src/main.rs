@@ -1,14 +1,14 @@
+mod exec;
+use exec::{deploy_contract, run_tx};
+
 use std::fs::File;
 use std::io::Read;
 use std::process::Command;
 
 use alloy_sol_types::SolValue;
 use revm::{
-    primitives::{
-        address, keccak256, ruint::Uint, AccountInfo, Address, Bytecode, Bytes, ExecutionResult,
-        Output, TransactTo, U256,
-    },
-    Evm, InMemoryDB,
+    primitives::{address, keccak256, ruint::Uint, AccountInfo, Address, Bytecode, Bytes},
+    InMemoryDB,
 };
 
 fn compile_runtime(path: &str) -> Result<Vec<u8>, ()> {
@@ -112,54 +112,6 @@ fn add_contract_to_db(db: &mut InMemoryDB, addr: Address, bytecode: Bytes) {
         Bytecode::new_raw(bytecode),
     );
     db.insert_account_info(addr, account);
-}
-
-fn deploy_contract(db: &mut InMemoryDB, bytecode: Bytes) -> Address {
-    let mut evm = Evm::builder()
-        .with_db(db)
-        .modify_tx_env(|tx| {
-            tx.caller = address!("0000000000000000000000000000000000000001");
-            tx.transact_to = TransactTo::Create;
-            tx.data = bytecode;
-            tx.value = U256::from(0);
-        })
-        .build();
-    evm.cfg_mut().limit_contract_code_size = Some(usize::MAX);
-
-    let result = evm.transact_commit().unwrap();
-
-    match result {
-        ExecutionResult::Success {
-            output: Output::Create(_value, Some(addr)),
-            ..
-        } => {
-            println!("Deployed at addr: {:?}", addr);
-            addr
-        }
-        result => panic!("Unexpected result: {:?}", result),
-    }
-}
-
-fn run_tx(db: &mut InMemoryDB, addr: &Address, calldata: Vec<u8>) {
-    let mut evm = Evm::builder()
-        .with_db(db)
-        .modify_tx_env(|tx| {
-            tx.caller = address!("0000000000000000000000000000000000000001");
-            tx.transact_to = TransactTo::Call(*addr);
-            tx.data = calldata.into();
-            tx.value = U256::from(0);
-        })
-        .build();
-
-    let result = evm.transact_commit().unwrap();
-
-    match result {
-        ExecutionResult::Success {
-            output: Output::Call(value),
-            ..
-        } => println!("Tx result: {:?}", value),
-        result => panic!("Unexpected result: {:?}", result),
-    };
 }
 
 fn test_runtime_from_binary() {
