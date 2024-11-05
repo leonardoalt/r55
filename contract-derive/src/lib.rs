@@ -25,11 +25,7 @@ pub fn contract(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Iterate over the items in the impl block to find pub methods
     for item in input.items.iter() {
         if let ImplItem::Method(method) = item {
-            if method.vis
-                == syn::Visibility::Public(syn::VisPublic {
-                    pub_token: syn::token::Pub::default(),
-                })
-            {
+            if let syn::Visibility::Public(_) = method.vis {
                 public_methods.push(method.clone());
             }
         }
@@ -80,7 +76,7 @@ pub fn contract(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Generate the call method implementation
     let call_method = quote! {
         use alloy_sol_types::SolValue;
-        use eth_riscv_runtime::{revert, return_riscv, slice_from_raw_parts, Contract};
+        use eth_riscv_runtime::{revert, msg_sender, return_riscv, slice_from_raw_parts, Contract};
 
         impl Contract for #struct_name {
             fn call(&self) {

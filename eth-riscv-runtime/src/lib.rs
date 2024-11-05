@@ -72,6 +72,14 @@ pub fn revert() -> ! {
     unreachable!()
 }
 
+pub fn msg_sender() -> u64 {
+    let address: u64;
+    unsafe {
+        asm!("ecall", lateout("a0") address, in("t0") u32::from(Syscall::Caller));
+    }
+    address
+}
+
 #[allow(non_snake_case)]
 #[no_mangle]
 fn DefaultHandler() {

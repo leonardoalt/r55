@@ -56,4 +56,5 @@ syscalls!(
     (2, SStore, "sstore"),
     (3, Call, "call"),
     (4, Revert, "revert"),
+    (5, Caller, "caller"),
 );
