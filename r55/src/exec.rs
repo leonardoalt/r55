@@ -42,7 +42,7 @@ pub fn run_tx(db: &mut InMemoryDB, addr: &Address, calldata: Vec<u8>) {
     let mut evm = Evm::builder()
         .with_db(db)
         .modify_tx_env(|tx| {
-            tx.caller = address!("0000000000000000000000000000000000000001");
+            tx.caller = address!("0000000000000000000000000000000000000007");
             tx.transact_to = TransactTo::Call(*addr);
             tx.data = calldata.into();
             tx.value = U256::from(0);
@@ -241,6 +241,20 @@ fn execute_riscv(
                                 gas: interpreter.gas, // FIXME: gas is not correct
                             },
                         };
+                    }
+                    5 => {
+                        // Syscall::Caller
+                        let caller = interpreter.contract.caller;
+                        // Break address into 3 u64s and write to registers
+                        let caller_bytes = caller.as_slice();
+                        let first_u64 = u64::from_be_bytes(caller_bytes[0..8].try_into().unwrap());
+                        emu.cpu.xregs.write(10, first_u64);
+                        let second_u64 = u64::from_be_bytes(caller_bytes[8..16].try_into().unwrap());
+                        emu.cpu.xregs.write(11, second_u64);
+                        let mut padded_bytes = [0u8; 8];
+                        padded_bytes[..4].copy_from_slice(&caller_bytes[16..20]);
+                        let third_u64 = u64::from_be_bytes(padded_bytes);
+                        emu.cpu.xregs.write(12, third_u64);
                     }
                     _ => {
                         println!("Unhandled syscall: {:?}", t0);

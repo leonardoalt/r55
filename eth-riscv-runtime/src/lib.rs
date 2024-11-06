@@ -6,6 +6,7 @@ use core::arch::asm;
 use core::panic::PanicInfo;
 use core::slice;
 pub use riscv_rt::entry;
+use alloy_core::primitives::Address;
 
 mod alloc;
 pub mod types;
@@ -72,12 +73,18 @@ pub fn revert() -> ! {
     unreachable!()
 }
 
-pub fn msg_sender() -> u64 {
-    let address: u64;
+pub fn msg_sender() -> Address {
+    let first: u64;
+    let second: u64;
+    let third: u64;
     unsafe {
-        asm!("ecall", lateout("a0") address, in("t0") u32::from(Syscall::Caller));
+        asm!("ecall", lateout("a0") first, lateout("a1") second, lateout("a2") third, in("t0") u32::from(Syscall::Caller));
     }
-    address
+    let mut bytes = [0u8; 20];
+    bytes[0..8].copy_from_slice(&first.to_be_bytes());
+    bytes[8..16].copy_from_slice(&second.to_be_bytes());
+    bytes[16..20].copy_from_slice(&third.to_be_bytes()[..4]);
+    Address::from_slice(&bytes)
 }
 
 #[allow(non_snake_case)]
