@@ -82,14 +82,14 @@ pub fn keccak256(offset: u64, size: u64) -> B256 {
     unsafe {
         asm!(
             "ecall",
-            inout("a0") data.as_ptr() => _,
-            inout("a1") size => _,
+            in("a0") offset,
+            in("a1") size,
             lateout("a0") first,
             lateout("a1") second,
             lateout("a2") third,
             lateout("a3") fourth,
             in("t0") u32::from(Syscall::Keccak256),
-            // options(nostack, preserves_flags)
+            options(nostack, preserves_flags)
         );
     }
 
