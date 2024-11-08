@@ -4,7 +4,7 @@
 use core::default::Default;
 
 use contract_derive::contract;
-use eth_riscv_runtime::types::Mapping;
+use eth_riscv_runtime::{types::Mapping, log};
 
 use alloy_core::primitives::{Address, address};
 
@@ -19,7 +19,7 @@ impl ERC20 {
         self.balance.read(owner)
     }
 
-    pub fn transfer(&self, from: Address, to: Address, value: u64) {
+    pub fn transfer(&self, from: Address, to: Address, value: u64) -> bool {
         let from_balance = self.balance.read(from);
         let to_balance = self.balance.read(to);
 
@@ -29,9 +29,22 @@ impl ERC20 {
 
         self.balance.write(from, from_balance - value);
         self.balance.write(to, to_balance + value);
+
+        let mut log_data = [0u8; 48];  // 20 + 20 + 8 bytes
+        log_data[..20].copy_from_slice(from.as_slice());
+        log_data[20..40].copy_from_slice(to.as_slice());
+        log_data[40..48].copy_from_slice(&value.to_ne_bytes());
+    
+        log(
+            log_data.as_ptr() as u64,
+            log_data.len() as u64,
+            0,
+            0
+        );
+        true
     }
 
-    pub fn mint(&self, to: Address, value: u64) {
+    pub fn mint(&self, to: Address, value: u64) -> bool  {
         let owner = msg_sender();
         if owner != address!("0000000000000000000000000000000000000007") {
             revert();
@@ -39,5 +52,6 @@ impl ERC20 {
 
         let to_balance = self.balance.read(to);
         self.balance.write(to, to_balance + value);
+        true
     }
 }
