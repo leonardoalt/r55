@@ -1,3 +1,4 @@
+use alloy_core::primitives::Keccak256;
 use eth_riscv_interpreter::setup_from_elf;
 use revm::{
     handler::register::EvmHandler,
@@ -255,6 +256,30 @@ fn execute_riscv(
                         padded_bytes[..4].copy_from_slice(&caller_bytes[16..20]);
                         let third_u64 = u64::from_be_bytes(padded_bytes);
                         emu.cpu.xregs.write(12, third_u64);
+                    }
+                    6 => {
+                        // Syscall::Keccak256
+                        let offset: u64 = emu.cpu.xregs.read(10);
+                        let size: u64 = emu.cpu.xregs.read(11);
+
+                        let data_bytes = if size != 0 {
+                            emu.cpu
+                                .bus
+                                .get_dram_slice(offset..(offset + size))
+                                .unwrap()
+                        } else {
+                            &mut []
+                        };
+
+                        let mut hasher = Keccak256::new();
+                        hasher.update(data_bytes);
+                        let hash: [u8; 32] = hasher.finalize().into();
+
+                        // Write the hash to the emulator's registers
+                        emu.cpu.xregs.write(10, u64::from_le_bytes(hash[0..8].try_into().unwrap()));
+                        emu.cpu.xregs.write(11, u64::from_le_bytes(hash[8..16].try_into().unwrap()));
+                        emu.cpu.xregs.write(12, u64::from_le_bytes(hash[16..24].try_into().unwrap()));
+                        emu.cpu.xregs.write(13, u64::from_le_bytes(hash[24..32].try_into().unwrap()));
                     }
                     _ => {
                         println!("Unhandled syscall: {:?}", t0);

@@ -6,7 +6,7 @@ use core::arch::asm;
 use core::panic::PanicInfo;
 use core::slice;
 pub use riscv_rt::entry;
-use alloy_core::primitives::Address;
+use alloy_core::primitives::{Address, B256};
 
 mod alloc;
 pub mod types;
@@ -71,6 +71,36 @@ pub fn revert() -> ! {
         asm!("ecall", in("t0") u32::from(Syscall::Revert));
     }
     unreachable!()
+}
+
+pub fn keccak256(offset: u64, size: u64) -> B256 {
+    let first: u64;
+    let second: u64;
+    let third: u64;
+    let fourth: u64;
+
+    unsafe {
+        asm!(
+            "ecall",
+            in("a0") offset,
+            in("a1") size,
+            lateout("a0") first,
+            lateout("a1") second,
+            lateout("a2") third,
+            lateout("a3") fourth,
+            in("t0") u32::from(Syscall::Keccak256),
+            options(nostack, preserves_flags)
+        );
+    }
+
+    let mut bytes = [0u8; 32];
+
+    bytes[0..8].copy_from_slice(&first.to_be_bytes());
+    bytes[8..16].copy_from_slice(&second.to_be_bytes());
+    bytes[16..24].copy_from_slice(&third.to_be_bytes());
+    bytes[24..32].copy_from_slice(&fourth.to_be_bytes());
+
+    B256::from_slice(&bytes)
 }
 
 pub fn msg_sender() -> Address {
