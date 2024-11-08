@@ -9,5 +9,3 @@ riscv-rt = "0.12.2"
 
 alloy-core = { version = "0.7.4", default-features = false }
 alloy-sol-types = { version = "0.7.4", default-features = false }
-
-tiny-keccak = { version = "2.0.2", features = ["keccak"] }

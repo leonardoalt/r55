@@ -4,7 +4,6 @@ use core::default::Default;
 use crate::*;
 
 use alloy_core::primitives::Address;
-use tiny_keccak::{Hasher, Keccak};
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -26,10 +25,10 @@ impl<K: ToBytes, V: Into<u64> + From<u64>> Mapping<K, V> {
         concatenated.extend_from_slice(&key_bytes);
         concatenated.extend_from_slice(&id_bytes);
 
-        let mut output = [0u8; 32];
-        let mut hasher = Keccak::v256();
-        hasher.update(&concatenated);
-        hasher.finalize(&mut output);
+        // Call the keccak256 syscall with the concatenated bytes
+        let offset = concatenated.as_ptr() as u64;
+        let size = concatenated.len() as u64;
+        let output = keccak256(offset, size);
 
         let mut bytes = [0u8; 8];
         bytes.copy_from_slice(&output[..8]);
