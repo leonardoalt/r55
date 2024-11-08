@@ -50,6 +50,8 @@ macro_rules! syscalls {
 // t0: 2, opcode for sstore, a0: storage key, a1: storage value, returns nothing
 // t0: 3, opcode for call, args: TODO
 // t0: 4, opcode for revert, doesn't return
+// t0: 5, opcode for caller, returns an address
+// t0: 6, opcode for keccak256, a0: offset, a1: size, returns keccak256 hash
 syscalls!(
     (0, Return, "return"),
     (1, SLoad, "sload"),
@@ -57,4 +59,5 @@ syscalls!(
     (3, Call, "call"),
     (4, Revert, "revert"),
     (5, Caller, "caller"),
+    (6, Keccak256, "keccak256"),
 );
